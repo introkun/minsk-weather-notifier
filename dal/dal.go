@@ -1,9 +1,13 @@
 package dal
 
 import (
+    "fmt"
     "github.com/cznic/ql"
     "time"
 )
+
+type Database ql.DB
+type DatabaseContext ql.TCtx
 
 type Forecast struct {
     ID              int64 `ql:"index xID"`
@@ -13,9 +17,7 @@ type Forecast struct {
     MaxTemp         int32
 }
 
-func InitDb(name string, ctx *ql.TCtx) *ql.DB {
-    schema := ql.MustSchema((*Forecast)(nil), "", nil)
-
+func openDb(name string) *ql.DB {
     qlOpt := ql.Options{CanCreate: true}
     db, err := ql.OpenFile(name, &qlOpt)
 
@@ -23,21 +25,35 @@ func InitDb(name string, ctx *ql.TCtx) *ql.DB {
         panic(err)
     }
 
+    return db
+}
+
+func InitDb(name string) (*Database, *DatabaseContext) {
+    schema := ql.MustSchema((*Forecast)(nil), "", nil)
+
+    db := openDb(name)
+
+    ctx := ql.NewRWCtx()
     if _, _, err := db.Execute(ctx, schema); err != nil {
         panic(err)
     }
 
-    return db
+    return (*Database)(db), (*DatabaseContext)(ctx)
 }
 
-func InsertRecord(db *ql.DB, ctx *ql.TCtx, dbItem *Forecast) {
+func InsertRecord(db *Database, ctx *DatabaseContext, dbItem *Forecast) {
     ins := ql.MustCompile(`
         BEGIN TRANSACTION;
-            INSERT INTO forecast VALUES($1, $2, $3, $4);
+            INSERT INTO Forecast VALUES($1, $2, $3, $4);
         COMMIT;`,
     )
 
-    if _, _, err := db.Execute(ctx, ins, ql.MustMarshal(dbItem)...); err != nil {
+    fmt.Println(db)
+    if _, _, err := (*ql.DB)(db).Execute((*ql.TCtx)(ctx), ins, ql.MustMarshal(dbItem)...); err != nil {
         panic(err)
     }
+}
+
+func Flush(db *Database) {
+    (*ql.DB)(db).Close()
 }

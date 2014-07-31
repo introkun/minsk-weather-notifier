@@ -10,6 +10,7 @@ import (
     "minsk_weather_notifier/weather_providers"
     "net/http"
     "os"
+    "time"
 )
 
 const (
@@ -42,6 +43,7 @@ func saveForecast(q *weather_providers.YahooQuery) {
     forecast := dal.Forecast{}
     forecast.WeatherProvider = "Yahoo"
     item := q.Channel.Item.Forecasts[0]
+    forecast.Timestamp = time.Now()
     forecast.MinTemp = int32(item.Low)
     forecast.MaxTemp = int32(item.High)
     dal.InsertRecord(Db, Ctx, &forecast)

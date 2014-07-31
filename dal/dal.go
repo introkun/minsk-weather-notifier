@@ -1,7 +1,6 @@
 package dal
 
 import (
-    "fmt"
     "github.com/cznic/ql"
     "time"
 )
@@ -48,7 +47,6 @@ func InsertRecord(db *Database, ctx *DatabaseContext, dbItem *Forecast) {
         COMMIT;`,
     )
 
-    fmt.Println(db)
     if _, _, err := (*ql.DB)(db).Execute((*ql.TCtx)(ctx), ins, ql.MustMarshal(dbItem)...); err != nil {
         panic(err)
     }

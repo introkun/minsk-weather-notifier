@@ -6,6 +6,7 @@ import (
     "fmt"
     "io/ioutil"
     "minsk_weather_notifier/communication"
+    "minsk_weather_notifier/dal"
     "minsk_weather_notifier/weather_providers"
     "net/http"
     "os"
@@ -13,6 +14,12 @@ import (
 
 const (
     ConfigFile = "conf.json"
+    DbName     = "ql.db"
+)
+
+var (
+    Db  *dal.Database
+    Ctx *dal.DatabaseContext
 )
 
 func sendEmail(body string) {
@@ -26,6 +33,18 @@ func sendEmail(body string) {
 
     fmt.Println(smtpInfo)
     communication.Email(smtpInfo, "Weather forecast", body)
+}
+
+func saveForecast(q *weather_providers.YahooQuery) {
+    if Db == nil {
+        Db, Ctx = dal.InitDb(DbName)
+    }
+    forecast := dal.Forecast{}
+    forecast.WeatherProvider = "Yahoo"
+    item := q.Channel.Item.Forecasts[0]
+    forecast.MinTemp = int32(item.Low)
+    forecast.MaxTemp = int32(item.High)
+    dal.InsertRecord(Db, Ctx, &forecast)
 }
 
 func main() {
@@ -53,5 +72,7 @@ func main() {
     }
     totalForecast += "\r\n--\r\nBest,\r\nSergey"
 
-    sendEmail(totalForecast)
+    //sendEmail(totalForecast)
+    saveForecast(&q)
+    defer dal.Flush(Db)
 }
